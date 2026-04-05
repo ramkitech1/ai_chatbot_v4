@@ -15,6 +15,17 @@ function ChatUI() {
   const [budget, setBudget] = useState("");
   const [days, setDays] = useState("");
 
+  
+  const [age, setAge] = useState("");
+  const [height, setHeight] = useState("");
+  const [weight, setWeight] = useState("");
+  const [goal, setGoal] = useState("");
+
+  
+  const [foodInput, setFoodInput] = useState("");
+  const [foodLog, setFoodLog] = useState([]);
+  const [isTrackingCalories, setIsTrackingCalories] = useState(false);
+
   const [currency, setCurrency] = useState("INR");
   const [darkMode, setDarkMode] = useState(false);
 
@@ -23,10 +34,13 @@ function ChatUI() {
     { value: "USD", label: "$ USD" },
     { value: "EUR", label: "€ EUR" },
     { value: "GBP", label: "£ GBP" },
-    { value: "AED", label: "AED" },
     { value: "JPY", label: "¥ JPY" },
+    { value: "AUD", label: "A$ AUD" },
     { value: "CAD", label: "C$ CAD" },
-    { value: "AUD", label: "A$ AUD" }
+    { value: "CHF", label: "CHF" },
+    { value: "CNY", label: "¥ CNY" },
+    { value: "SGD", label: "S$ SGD" },
+    { value: "NZD", label: "NZ$ NZD" }
   ];
 
   useEffect(() => {
@@ -38,68 +52,10 @@ function ChatUI() {
     localStorage.setItem("darkMode", JSON.stringify(darkMode));
   }, [darkMode]);
 
-  const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
-  };
+  const toggleDarkMode = () => setDarkMode(!darkMode);
 
-  const renderTravelCards = (text) => {
-    const clean = text.replace(/\*\*/g, "");
-
-    const sections = {
-      summary: "",
-      itinerary: "",
-      budget: "",
-      suggestions: "",
-    };
-
-    let current = "";
-
-    clean.split("\n").forEach((line) => {
-      const lower = line.toLowerCase();
-
-      if (lower.includes("trip summary")) current = "summary";
-      else if (lower.includes("itinerary")) current = "itinerary";
-      else if (lower.includes("budget")) current = "budget";
-      else if (lower.includes("suggestions")) current = "suggestions";
-
-      if (current) sections[current] += line + "\n";
-    });
-
-    return (
-      <>
-        {sections.summary && (
-          <div className="card summary">
-            <h3>Trip Summary</h3>
-            <pre>{sections.summary}</pre>
-          </div>
-        )}
-
-        {sections.itinerary && (
-          <div className="card itinerary">
-            <h3>Itinerary</h3>
-            <pre>{sections.itinerary}</pre>
-          </div>
-        )}
-
-        {sections.budget && (
-          <div className="card budget">
-            <h3>Budget</h3>
-            <pre>{sections.budget}</pre>
-          </div>
-        )}
-
-        {sections.suggestions && (
-          <div className="card suggestions">
-            <h3>Suggestions</h3>
-            <pre>{sections.suggestions}</pre>
-          </div>
-        )}
-      </>
-    );
-  };
-
-  const switchMode = (newMode) => {
-    setMode(newMode);
+  const switchMode = (m) => {
+    setMode(m);
     setChat([]);
   };
 
@@ -110,41 +66,64 @@ function ChatUI() {
     setLocation("");
     setBudget("");
     setDays("");
-    setCurrency("INR");
+    setAge("");
+    setHeight("");
+    setWeight("");
+    setGoal("");
+    setFoodInput("");
+    setFoodLog([]);
   };
 
-  const openMaps = () => {
-    if (!location) return;
-    const url = `https://www.google.com/maps?q=${encodeURIComponent(location)}`;
-    window.open(url, "_blank");
+  const calculateBMI = () => {
+    if (weight && height) {
+      const hInMeters = height / 100;
+      const bmiValue = (weight / (hInMeters * hInMeters)).toFixed(1);
+      let category = "Normal";
+      if (bmiValue < 18.5) category = "Underweight";
+      else if (bmiValue >= 25 && bmiValue < 30) category = "Overweight";
+      else if (bmiValue >= 30) category = "Obese";
+      return { bmi: bmiValue, category };
+    }
+    return null;
+  };
+  const bmiData = calculateBMI();
+
+  const trackCalories = async () => {
+    if (!foodInput) return;
+    setIsTrackingCalories(true);
+    try {
+      const res = await axios.post("http://127.0.0.1:8000/chat", {
+        message: `Estimate the total calories for the following food item. Respond ONLY with the number of calories (e.g., 250). Do not include any text, letters, or explanation. Food: ${foodInput}`,
+        mode: "custom",
+      });
+      const cals = parseInt(res.data.response.replace(/\D/g, ""), 10) || 0;
+      setFoodLog([...foodLog, { food: foodInput, calories: cals }]);
+      setFoodInput("");
+    } catch (e) {
+      console.error(e);
+    }
+    setIsTrackingCalories(false);
   };
 
   const sendMessage = async () => {
     let input = message;
 
     if (mode === "workflow") input = taskInput;
-
-    if (mode === "travel") {
+    if (mode === "travel")
       input = `Location: ${location}, Budget: ${budget} ${currency}, Days: ${days}`;
-    }
+    if (mode === "fitness")
+      input = `Age: ${age}, Height: ${height}cm, Weight: ${weight}kg, Goal: ${goal}`;
 
     if (!input) return;
 
-    try {
-      const res = await axios.post("http://127.0.0.1:8000/chat", {
-        message: input,
-        mode,
-        custom_prompt: customPrompt,
-      });
+    const res = await axios.post("http://127.0.0.1:8000/chat", {
+      message: input,
+      mode,
+      custom_prompt: customPrompt,
+    });
 
-      setChat([...chat, { user: input, bot: res.data.response }]);
-
-      setMessage("");
-      setTaskInput("");
-    } catch (err) {
-      console.error(err);
-      alert("Backend not connected!");
-    }
+    setChat([...chat, { user: input, bot: res.data.response }]);
+    if (["generic", "custom", "multiagent", "finance"].includes(mode)) setMessage("");
   };
 
   return (
@@ -164,19 +143,44 @@ function ChatUI() {
         <button onClick={() => switchMode("multiagent")}>Multi-Agent</button>
         <button onClick={() => switchMode("workflow")}>Workflow</button>
         <button onClick={() => switchMode("travel")}>Travel</button>
+        <button onClick={() => switchMode("fitness")}>Fitness</button>
       </div>
 
       <p className="mode-text">Current Mode: {mode}</p>
 
+      <div className="main-content">
+      
+      {["generic", "multiagent", "finance"].includes(mode) && (
+        <div className="input-area" style={{ width: "90%", margin: "0 auto" }}>
+          <input 
+            placeholder={mode === "multiagent" ? "Ask the multi-agent team..." : mode === "finance" ? "Ask your finance query..." : "Type your message..."} 
+            value={message} 
+            onChange={(e) => setMessage(e.target.value)} 
+            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+          />
+          <button onClick={sendMessage}>Send</button>
+        </div>
+      )}
+
       
       {mode === "custom" && (
-        <div className="workflow-panel">
-          <textarea
-            className="prompt-box"
-            placeholder="Enter your prompt..."
+        <div className="custom-panel" style={{ width: "90%", margin: "0 auto", display: "flex", flexDirection: "column", gap: "10px" }}>
+          <textarea 
+            placeholder="Enter AI persona or custom instructions (e.g., 'You are a sarcastic bot...')" 
             value={customPrompt}
             onChange={(e) => setCustomPrompt(e.target.value)}
+            className="custom-prompt-input"
+            style={{ padding: "12px", borderRadius: "8px", resize: "vertical", minHeight: "60px", fontFamily: "inherit" }}
           />
+          <div className="input-area" style={{ padding: 0 }}>
+            <input 
+              placeholder="Type your message..." 
+              value={message} 
+              onChange={(e) => setMessage(e.target.value)} 
+              onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+            />
+            <button onClick={sendMessage}>Send</button>
+          </div>
         </div>
       )}
 
@@ -184,13 +188,14 @@ function ChatUI() {
       {mode === "workflow" && (
         <div className="workflow-panel">
           <textarea
-            placeholder="Enter your task..."
+            placeholder="Describe your workflow task (e.g., Extract data and format as JSON)..."
             value={taskInput}
             onChange={(e) => setTaskInput(e.target.value)}
           />
           <div className="workflow-actions">
-            <button onClick={sendMessage}>Run Task</button>
-            <button onClick={clearChat}>Clear</button>
+            <button onClick={sendMessage}>Run Workflow</button>
+            <button onClick={() => setTaskInput("")}>Clear</button>
+            <button onClick={clearChat}>Reset</button>
           </div>
         </div>
       )}
@@ -198,79 +203,89 @@ function ChatUI() {
       
       {mode === "travel" && (
         <div className="travel-panel">
-
-          {/* INPUTS ROW */}
           <div className="travel-inputs">
-            <input
-              placeholder="Location"
-              value={location}
-              onChange={(e) => setLocation(e.target.value)}
-            />
-
-            <input
-              placeholder="Budget"
-              value={budget}
-              onChange={(e) => setBudget(e.target.value)}
-            />
-
-            <input
-              placeholder="Days"
-              value={days}
-              onChange={(e) => setDays(e.target.value)}
-            />
-
-            <Select
-              options={currencyOptions}
-              value={currencyOptions.find(opt => opt.value === currency)}
-              onChange={(selected) => setCurrency(selected.value)}
+            <input placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} />
+            <input placeholder="Budget" type="number" value={budget} onChange={e => setBudget(e.target.value)} />
+            <Select 
               className="currency-dropdown"
+              options={currencyOptions}
+              value={currencyOptions.find(c => c.value === currency)}
+              onChange={(option) => setCurrency(option.value)}
               styles={{
                 control: (base) => ({
                   ...base,
-                  backgroundColor: darkMode ? "#2a2a2a" : "white",
-                  borderColor: "#555",
-                  borderRadius: "10px",
+                  height: "42px",
                   minHeight: "42px",
-                  height: "42px"
-                }),
-                valueContainer: (base) => ({
-                  ...base,
-                  height: "42px"
-                }),
-                indicatorsContainer: (base) => ({
-                  ...base,
-                  height: "42px"
-                }),
-                menu: (base) => ({
-                  ...base,
-                  backgroundColor: darkMode ? "#2a2a2a" : "white",
-                  borderRadius: "10px"
-                }),
-                option: (base, state) => ({
-                  ...base,
-                  backgroundColor: state.isFocused
-                    ? "#4cafef"
-                    : darkMode
-                    ? "#2a2a2a"
-                    : "white",
-                  color: darkMode ? "#ddd" : "#444"
-                }),
-                singleValue: (base) => ({
-                  ...base,
-                  color: darkMode ? "#bbb" : "#666"
-                }),
-                indicatorSeparator: () => ({ display: "none" })
+                  borderRadius: "10px",
+                  borderColor: "#ccc",
+                })
               }}
             />
+            <input placeholder="Days" type="number" value={days} onChange={e => setDays(e.target.value)} />
           </div>
-
-          
           <div className="travel-actions">
-            <button onClick={sendMessage}>Plan Trip</button>
+            <button onClick={sendMessage}>Get Itinerary</button>
             <button onClick={clearChat}>Clear</button>
-            <button onClick={openMaps}>Open in Maps</button>
           </div>
+        </div>
+      )}
 
+      
+      {mode === "fitness" && (
+        <div className="fitness-panel">
+          <div className="fitness-layout">
+            <div className="fitness-card">
+              <h3>Workout Plan</h3>
+              <div className="fitness-inputs">
+                <input placeholder="Age" value={age} onChange={e => setAge(e.target.value)} />
+                <input placeholder="Height (cm)" value={height} onChange={e => setHeight(e.target.value)} />
+                <input placeholder="Weight (kg)" value={weight} onChange={e => setWeight(e.target.value)} />
+                <select value={goal} onChange={e => setGoal(e.target.value)}>
+                  <option value="">Goal</option>
+                  <option value="weight loss">Weight Loss</option>
+                  <option value="muscle gain">Muscle Gain</option>
+                  <option value="fitness">Fitness</option>
+                </select>
+              </div>
+              {bmiData && (
+                <div className={`bmi-display ${bmiData.category.toLowerCase()}`}>
+                  <span>BMI: {bmiData.bmi}</span>
+                  <span className="bmi-category">{bmiData.category}</span>
+                </div>
+              )}
+              <div className="fitness-actions">
+                <button onClick={sendMessage}>Get Plan</button>
+                <button onClick={clearChat}>Clear</button>
+              </div>
+            </div>
+
+            <div className="fitness-card calorie-card">
+              <h3>Calorie Tracker</h3>
+              <div className="calorie-inputs">
+                <input 
+                  placeholder="What did you eat?" 
+                  value={foodInput} 
+                  onChange={e => setFoodInput(e.target.value)} 
+                  onKeyPress={(e) => e.key === 'Enter' && trackCalories()}
+                />
+                <button onClick={trackCalories} disabled={isTrackingCalories}>
+                  {isTrackingCalories ? "..." : "+"}
+                </button>
+              </div>
+              <div className="food-log">
+                {foodLog.map((log, i) => (
+                  <div key={i} className="food-log-item">
+                    <span>{log.food}</span>
+                    <span className="food-cals">{log.calories} kcal</span>
+                  </div>
+                ))}
+              </div>
+              <div className="food-log-total">
+                <strong>Total: </strong>
+                <span>{foodLog.reduce((acc, curr) => acc + curr.calories, 0)} kcal</span>
+              </div>
+            </div>
+          </div>
         </div>
       )}
 
@@ -280,35 +295,12 @@ function ChatUI() {
           <div key={i}>
             <div className="user-msg">{c.user}</div>
             <div className="bot-msg">
-              {mode === "travel" ? (
-                <div className="travel-cards">
-                  {renderTravelCards(c.bot)}
-                </div>
-              ) : (
-                <pre>{c.bot.replace(/\*\*/g, "")}</pre>
-              )}
+              <pre>{c.bot.replace(/\*/g, '')}</pre>
             </div>
           </div>
         ))}
       </div>
-
-      
-      {mode !== "workflow" && mode !== "travel" && (
-        <div className="input-area">
-          <input
-            value={message}
-            onChange={(e) => setMessage(e.target.value)}
-            onKeyDown={(e) => {
-              if (e.key === "Enter") {
-                e.preventDefault();
-                sendMessage();
-              }
-            }}
-            placeholder="Type a message..."
-          />
-          <button onClick={sendMessage}>Send</button>
-        </div>
-      )}
+      </div>
     </div>
   );
 }

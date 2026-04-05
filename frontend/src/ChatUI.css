@@ -73,10 +73,14 @@ h2 {
 }
 
 
-.chat-box {
+.main-content {
   flex: 1;
-  padding: 20px;
   overflow-y: auto;
+  padding-bottom: 20px;
+}
+
+.chat-box {
+  padding: 20px;
 }
 
 .user-msg {
@@ -138,13 +142,15 @@ h2 {
 }
 
 .workflow-actions button {
-  padding: 10px 15px;
+  padding: 8px 12px;
   border-radius: 8px;
   border: none;
   background-color: #4cafef;
   color: white;
   cursor: pointer;
-  height: 42px; /* ✅ align with inputs */
+  height: 36px;
+  font-size: 0.95em;
+  font-weight: 200;
 }
 
 .travel-panel {
@@ -220,4 +226,176 @@ button:hover {
   opacity: 0.9;
   transform: scale(1.03);
   transition: 0.2s;
+}
+
+
+.fitness-panel {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  width: 90%;
+  margin: 0 auto;
+}
+
+.fitness-layout {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+  justify-content: center;
+  width: 100%;
+}
+
+.fitness-card {
+  background: white;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 15px;
+  flex: 1;
+  min-width: 280px;
+  max-width: 400px;
+}
+
+.container.dark .fitness-card {
+  background: #1e1e1e;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+}
+
+.fitness-card h3 {
+  margin: 0;
+  text-align: center;
+  color: #333;
+}
+
+.container.dark .fitness-card h3 {
+  color: #eee;
+}
+
+
+.fitness-inputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+
+.fitness-inputs input,
+.fitness-inputs select {
+  padding: 8px 12px;
+  height: 38px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.container.dark .fitness-inputs input,
+.container.dark .fitness-inputs select {
+  background-color: #2a2a2a;
+  color: white;
+  border: 1px solid #555;
+}
+
+
+.bmi-display {
+  padding: 10px;
+  border-radius: 8px;
+  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-weight: bold;
+}
+
+.bmi-display.underweight { background-color: #ffe0b2; color: #e65100; }
+.bmi-display.normal { background-color: #c8e6c9; color: #1b5e20; }
+.bmi-display.overweight { background-color: #ffcc80; color: #e65100; }
+.bmi-display.obese { background-color: #ffcdd2; color: #b71c1c; }
+
+.container.dark .bmi-display.underweight { background-color: #4e342e; color: #ffb74d; }
+.container.dark .bmi-display.normal { background-color: #1b5e20; color: #81c784; }
+.container.dark .bmi-display.overweight { background-color: #e65100; color: #ffcc80; }
+.container.dark .bmi-display.obese { background-color: #b71c1c; color: #ef9a9a; }
+
+
+.calorie-inputs {
+  display: flex;
+  gap: 10px;
+}
+
+.calorie-inputs input {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  border: 1px solid #ccc;
+}
+
+.container.dark .calorie-inputs input {
+  background-color: #2a2a2a;
+  color: white;
+  border: 1px solid #555;
+}
+
+.calorie-inputs button {
+  padding: 10px 15px;
+  border-radius: 8px;
+  border: none;
+  background-color: #4cafef;
+  color: white;
+  cursor: pointer;
+  font-weight: bold;
+}
+
+.food-log {
+  max-height: 160px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.food-log-item {
+  display: flex;
+  justify-content: space-between;
+  background: #f5f5f5;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 0.9em;
+}
+
+.container.dark .food-log-item {
+  background: #2a2a2a;
+}
+
+.food-log-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.1em;
+  padding-top: 15px;
+  border-top: 1px solid #ddd;
+}
+
+.container.dark .food-log-total {
+  border-top: 1px solid #444;
+}
+
+
+.fitness-actions {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+}
+
+.fitness-actions button {
+  height: 38px;
+  padding: 8px 15px;
+  border-radius: 8px;
+  border: none;
+  background-color: #4cafef;
+  color: white;
+  cursor: pointer;
+  flex: 1;
 }
