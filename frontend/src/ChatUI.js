@@ -1,47 +1,13 @@
 import React, { useState, useEffect } from "react";
 import axios from "axios";
-import Select from "react-select";
 import "./ChatUI.css";
 
 function ChatUI() {
   const [message, setMessage] = useState("");
   const [chat, setChat] = useState([]);
   const [mode, setMode] = useState("generic");
-
   const [customPrompt, setCustomPrompt] = useState("");
-  const [taskInput, setTaskInput] = useState("");
-
-  const [location, setLocation] = useState("");
-  const [budget, setBudget] = useState("");
-  const [days, setDays] = useState("");
-
-  
-  const [age, setAge] = useState("");
-  const [height, setHeight] = useState("");
-  const [weight, setWeight] = useState("");
-  const [goal, setGoal] = useState("");
-
-  
-  const [foodInput, setFoodInput] = useState("");
-  const [foodLog, setFoodLog] = useState([]);
-  const [isTrackingCalories, setIsTrackingCalories] = useState(false);
-
-  const [currency, setCurrency] = useState("INR");
   const [darkMode, setDarkMode] = useState(false);
-
-  const currencyOptions = [
-    { value: "INR", label: "₹ INR" },
-    { value: "USD", label: "$ USD" },
-    { value: "EUR", label: "€ EUR" },
-    { value: "GBP", label: "£ GBP" },
-    { value: "JPY", label: "¥ JPY" },
-    { value: "AUD", label: "A$ AUD" },
-    { value: "CAD", label: "C$ CAD" },
-    { value: "CHF", label: "CHF" },
-    { value: "CNY", label: "¥ CNY" },
-    { value: "SGD", label: "S$ SGD" },
-    { value: "NZD", label: "NZ$ NZD" }
-  ];
 
   useEffect(() => {
     const saved = localStorage.getItem("darkMode");
@@ -57,73 +23,35 @@ function ChatUI() {
   const switchMode = (m) => {
     setMode(m);
     setChat([]);
-  };
-
-  const clearChat = () => {
-    setChat([]);
-    setMessage("");
-    setTaskInput("");
-    setLocation("");
-    setBudget("");
-    setDays("");
-    setAge("");
-    setHeight("");
-    setWeight("");
-    setGoal("");
-    setFoodInput("");
-    setFoodLog([]);
-  };
-
-  const calculateBMI = () => {
-    if (weight && height) {
-      const hInMeters = height / 100;
-      const bmiValue = (weight / (hInMeters * hInMeters)).toFixed(1);
-      let category = "Normal";
-      if (bmiValue < 18.5) category = "Underweight";
-      else if (bmiValue >= 25 && bmiValue < 30) category = "Overweight";
-      else if (bmiValue >= 30) category = "Obese";
-      return { bmi: bmiValue, category };
+    
+    if (m === "generic" || m === "custom") {
+      setCustomPrompt("");
+    } else if (m === "finance") {
+      setCustomPrompt("You are an AI Personal Finance Advisor.\n- Analyze income/expenses\n- Suggest savings\n- Give investment tips");
+    } else if (m === "multiagent") {
+      setCustomPrompt("You are a Multi-Agent AI system.\nSTRICT FORMAT:\nResearch:\n- Response Type:\n- Intent:\n- Key Info:\n\nAnalysis:\n- Step 1:\n- Step 2:\n- Step 3:\n\nFinal Answer:\n- Clear response");
+    } else if (m === "workflow") {
+      setCustomPrompt("You are an AI Workflow Assistant.\nTasks:\n- Summarize\n- Generate email\n- Create to-do\nReturn structured output.");
+    } else if (m === "travel") {
+      setCustomPrompt("You are a Travel Assistant.\n- Suggest itinerary\n- Plan budget\n- Provide tips\n\nOutput format:\nTrip Summary:\nItinerary:\nBudget:\nSuggestions:");
+    } else if (m === "fitness") {
+      setCustomPrompt("You are a certified fitness coach.\n\nYour job:\n1. Workout Plan (based on goal)\n2. Diet Plan (simple meals)\n3. Tips\n\nSTRICT FORMAT:\nWorkout Plan:\n- ...\nDiet Plan:\n- ...\nTips:\n- ...");
     }
-    return null;
   };
-  const bmiData = calculateBMI();
 
-  const trackCalories = async () => {
-    if (!foodInput) return;
-    setIsTrackingCalories(true);
-    try {
-      const res = await axios.post("http://127.0.0.1:8000/chat", {
-        message: `Estimate the total calories for the following food item. Respond ONLY with the number of calories (e.g., 250). Do not include any text, letters, or explanation. Food: ${foodInput}`,
-        mode: "custom",
-      });
-      const cals = parseInt(res.data.response.replace(/\D/g, ""), 10) || 0;
-      setFoodLog([...foodLog, { food: foodInput, calories: cals }]);
-      setFoodInput("");
-    } catch (e) {
-      console.error(e);
-    }
-    setIsTrackingCalories(false);
-  };
+
 
   const sendMessage = async () => {
-    let input = message;
-
-    if (mode === "workflow") input = taskInput;
-    if (mode === "travel")
-      input = `Location: ${location}, Budget: ${budget} ${currency}, Days: ${days}`;
-    if (mode === "fitness")
-      input = `Age: ${age}, Height: ${height}cm, Weight: ${weight}kg, Goal: ${goal}`;
-
-    if (!input) return;
+    if (!message) return;
 
     const res = await axios.post("http://127.0.0.1:8000/chat", {
-      message: input,
-      mode,
+      message: message,
+      mode: mode,
       custom_prompt: customPrompt,
     });
 
-    setChat([...chat, { user: input, bot: res.data.response }]);
-    if (["generic", "custom", "multiagent", "finance"].includes(mode)) setMessage("");
+    setChat([...chat, { user: message, bot: res.data.response }]);
+    setMessage("");
   };
 
   return (
@@ -150,10 +78,10 @@ function ChatUI() {
 
       <div className="main-content">
       
-      {["generic", "multiagent", "finance"].includes(mode) && (
+      {mode === "generic" && (
         <div className="input-area" style={{ width: "90%", margin: "0 auto" }}>
           <input 
-            placeholder={mode === "multiagent" ? "Ask the multi-agent team..." : mode === "finance" ? "Ask your finance query..." : "Type your message..."} 
+            placeholder="Type your message..." 
             value={message} 
             onChange={(e) => setMessage(e.target.value)} 
             onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
@@ -163,14 +91,14 @@ function ChatUI() {
       )}
 
       
-      {mode === "custom" && (
+      {mode !== "generic" && (
         <div className="custom-panel" style={{ width: "90%", margin: "0 auto", display: "flex", flexDirection: "column", gap: "10px" }}>
           <textarea 
             placeholder="Enter AI persona or custom instructions (e.g., 'You are a sarcastic bot...')" 
             value={customPrompt}
             onChange={(e) => setCustomPrompt(e.target.value)}
             className="custom-prompt-input"
-            style={{ padding: "12px", borderRadius: "8px", resize: "vertical", minHeight: "60px", fontFamily: "inherit" }}
+            style={{ padding: "12px", borderRadius: "8px", resize: "vertical", minHeight: "150px", fontFamily: "inherit" }}
           />
           <div className="input-area" style={{ padding: 0 }}>
             <input 
@@ -180,111 +108,6 @@ function ChatUI() {
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
             />
             <button onClick={sendMessage}>Send</button>
-          </div>
-        </div>
-      )}
-
-      
-      {mode === "workflow" && (
-        <div className="workflow-panel">
-          <textarea
-            placeholder="Describe your workflow task (e.g., Extract data and format as JSON)..."
-            value={taskInput}
-            onChange={(e) => setTaskInput(e.target.value)}
-          />
-          <div className="workflow-actions">
-            <button onClick={sendMessage}>Run Workflow</button>
-            <button onClick={() => setTaskInput("")}>Clear</button>
-            <button onClick={clearChat}>Reset</button>
-          </div>
-        </div>
-      )}
-
-      
-      {mode === "travel" && (
-        <div className="travel-panel">
-          <div className="travel-inputs">
-            <input placeholder="Location" value={location} onChange={e => setLocation(e.target.value)} />
-            <input placeholder="Budget" type="number" value={budget} onChange={e => setBudget(e.target.value)} />
-            <Select 
-              className="currency-dropdown"
-              options={currencyOptions}
-              value={currencyOptions.find(c => c.value === currency)}
-              onChange={(option) => setCurrency(option.value)}
-              styles={{
-                control: (base) => ({
-                  ...base,
-                  height: "42px",
-                  minHeight: "42px",
-                  borderRadius: "10px",
-                  borderColor: "#ccc",
-                })
-              }}
-            />
-            <input placeholder="Days" type="number" value={days} onChange={e => setDays(e.target.value)} />
-          </div>
-          <div className="travel-actions">
-            <button onClick={sendMessage}>Get Itinerary</button>
-            <button onClick={clearChat}>Clear</button>
-          </div>
-        </div>
-      )}
-
-      
-      {mode === "fitness" && (
-        <div className="fitness-panel">
-          <div className="fitness-layout">
-            <div className="fitness-card">
-              <h3>Workout Plan</h3>
-              <div className="fitness-inputs">
-                <input placeholder="Age" value={age} onChange={e => setAge(e.target.value)} />
-                <input placeholder="Height (cm)" value={height} onChange={e => setHeight(e.target.value)} />
-                <input placeholder="Weight (kg)" value={weight} onChange={e => setWeight(e.target.value)} />
-                <select value={goal} onChange={e => setGoal(e.target.value)}>
-                  <option value="">Goal</option>
-                  <option value="weight loss">Weight Loss</option>
-                  <option value="muscle gain">Muscle Gain</option>
-                  <option value="fitness">Fitness</option>
-                </select>
-              </div>
-              {bmiData && (
-                <div className={`bmi-display ${bmiData.category.toLowerCase()}`}>
-                  <span>BMI: {bmiData.bmi}</span>
-                  <span className="bmi-category">{bmiData.category}</span>
-                </div>
-              )}
-              <div className="fitness-actions">
-                <button onClick={sendMessage}>Get Plan</button>
-                <button onClick={clearChat}>Clear</button>
-              </div>
-            </div>
-
-            <div className="fitness-card calorie-card">
-              <h3>Calorie Tracker</h3>
-              <div className="calorie-inputs">
-                <input 
-                  placeholder="What did you eat?" 
-                  value={foodInput} 
-                  onChange={e => setFoodInput(e.target.value)} 
-                  onKeyPress={(e) => e.key === 'Enter' && trackCalories()}
-                />
-                <button onClick={trackCalories} disabled={isTrackingCalories}>
-                  {isTrackingCalories ? "..." : "+"}
-                </button>
-              </div>
-              <div className="food-log">
-                {foodLog.map((log, i) => (
-                  <div key={i} className="food-log-item">
-                    <span>{log.food}</span>
-                    <span className="food-cals">{log.calories} kcal</span>
-                  </div>
-                ))}
-              </div>
-              <div className="food-log-total">
-                <strong>Total: </strong>
-                <span>{foodLog.reduce((acc, curr) => acc + curr.calories, 0)} kcal</span>
-              </div>
-            </div>
           </div>
         </div>
       )}
