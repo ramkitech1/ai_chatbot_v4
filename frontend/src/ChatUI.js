@@ -8,6 +8,8 @@ function ChatUI() {
   const [mode, setMode] = useState("generic");
   const [customPrompt, setCustomPrompt] = useState("");
   const [darkMode, setDarkMode] = useState(false);
+  const [filePrompt, setFilePrompt] = useState("");
+  const [fileName, setFileName] = useState("");
 
   useEffect(() => {
     const saved = localStorage.getItem("darkMode");
@@ -23,7 +25,9 @@ function ChatUI() {
   const switchMode = (m) => {
     setMode(m);
     setChat([]);
-    
+    setFilePrompt("");
+    setFileName("");
+
     if (m === "generic" || m === "custom") {
       setCustomPrompt("");
     } else if (m === "finance") {
@@ -36,10 +40,60 @@ function ChatUI() {
       setCustomPrompt("You are a Travel Assistant.\n- Suggest itinerary\n- Plan budget\n- Provide tips\n\nOutput format:\nTrip Summary:\nItinerary:\nBudget:\nSuggestions:");
     } else if (m === "fitness") {
       setCustomPrompt("You are a certified fitness coach.\n\nYour job:\n1. Workout Plan (based on goal)\n2. Diet Plan (simple meals)\n3. Tips\n\nSTRICT FORMAT:\nWorkout Plan:\n- ...\nDiet Plan:\n- ...\nTips:\n- ...");
+    } else if (m === "legal") {
+      setCustomPrompt("You are a legal assistant helping users understand legal terms, contracts, and basic rights. If a document is uploaded, answer questions specifically based on that document.");
+    } else if (m === "tutor") {
+      setCustomPrompt("You are a personal tutor. Explain concepts clearly and concisely, verify understanding, and provide helpful examples. If a document is uploaded, base your answers specifically on that document.");
     }
   };
 
 
+
+  const handleFileUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    setFileName(file.name);
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await axios.post("http://127.0.0.1:8000/upload_doc", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      if (res.data.extracted_text) {
+        setFilePrompt(res.data.extracted_text);
+      } else {
+        alert("Could not extract text from file.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error uploading file.");
+    }
+  };
+
+  const handlePromptUpload = async (event) => {
+    const file = event.target.files[0];
+    if (!file) return;
+
+    const formData = new FormData();
+    formData.append("file", file);
+
+    try {
+      const res = await axios.post("http://127.0.0.1:8000/upload_doc", formData, {
+        headers: { "Content-Type": "multipart/form-data" }
+      });
+      if (res.data.extracted_text) {
+        setCustomPrompt(res.data.extracted_text);
+      } else {
+        alert("Could not extract text from file.");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error uploading file.");
+    }
+  };
 
   const sendMessage = async () => {
     if (!message) return;
@@ -48,6 +102,7 @@ function ChatUI() {
       message: message,
       mode: mode,
       custom_prompt: customPrompt,
+      file_prompt: filePrompt,
     });
 
     setChat([...chat, { user: message, bot: res.data.response }]);
@@ -72,57 +127,89 @@ function ChatUI() {
         <button onClick={() => switchMode("workflow")}>Workflow</button>
         <button onClick={() => switchMode("travel")}>Travel</button>
         <button onClick={() => switchMode("fitness")}>Fitness</button>
+        <button onClick={() => switchMode("legal")}>Legal</button>
+        <button onClick={() => switchMode("tutor")}>Tutor</button>
       </div>
 
       <p className="mode-text">Current Mode: {mode}</p>
 
       <div className="main-content">
-      
-      {mode === "generic" && (
-        <div className="input-area" style={{ width: "90%", margin: "0 auto" }}>
-          <input 
-            placeholder="Type your message..." 
-            value={message} 
-            onChange={(e) => setMessage(e.target.value)} 
-            onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
-          />
-          <button onClick={sendMessage}>Send</button>
-        </div>
-      )}
-
-      
-      {mode !== "generic" && (
-        <div className="custom-panel" style={{ width: "90%", margin: "0 auto", display: "flex", flexDirection: "column", gap: "10px" }}>
-          <textarea 
-            placeholder="Enter AI persona or custom instructions (e.g., 'You are a sarcastic bot...')" 
-            value={customPrompt}
-            onChange={(e) => setCustomPrompt(e.target.value)}
-            className="custom-prompt-input"
-            style={{ padding: "12px", borderRadius: "8px", resize: "vertical", minHeight: "150px", fontFamily: "inherit" }}
-          />
-          <div className="input-area" style={{ padding: 0 }}>
-            <input 
-              placeholder="Type your message..." 
-              value={message} 
-              onChange={(e) => setMessage(e.target.value)} 
+        
+        {mode === "generic" && (
+          <div className="input-area" style={{ width: "90%", margin: "0 auto" }}>
+            <input
+              placeholder="Type your message..."
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
               onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
             />
             <button onClick={sendMessage}>Send</button>
           </div>
-        </div>
-      )}
+        )}
 
-      
-      <div className="chat-box">
-        {chat.map((c, i) => (
-          <div key={i}>
-            <div className="user-msg">{c.user}</div>
-            <div className="bot-msg">
-              <pre>{c.bot.replace(/\*/g, '')}</pre>
+        
+        {mode !== "generic" && (
+          <div className="custom-panel" style={{ width: "90%", margin: "0 auto", display: "flex", flexDirection: "column", gap: "10px" }}>
+            <textarea
+              placeholder="Enter AI persona or custom instructions (e.g., 'You are a sarcastic bot...')"
+              value={customPrompt}
+              onChange={(e) => setCustomPrompt(e.target.value)}
+              className="custom-prompt-input"
+              style={{ padding: "12px", borderRadius: "8px", resize: "vertical", minHeight: "150px", fontFamily: "inherit" }}
+            />
+
+            {(mode === "legal" || mode === "tutor") && (
+              <div className="file-upload-area" style={{ display: 'flex', alignItems: 'center', gap: '10px', flexWrap: 'wrap' }}>
+                <input
+                  type="file"
+                  accept=".txt,.pdf"
+                  onChange={handleFileUpload}
+                  id="file-upload"
+                  style={{ display: "none" }}
+                />
+                <label htmlFor="file-upload" style={{ cursor: "pointer", background: darkMode ? "#444" : "#eee", color: darkMode ? "#fff" : "#000", padding: "8px 12px", borderRadius: "5px", fontSize: "0.9em" }}>
+                  {mode === "legal" ? "Upload Legal Document" : "Upload Study Material"} (.txt/pdf)
+                </label>
+                
+                <input
+                  type="file"
+                  accept=".txt,.pdf"
+                  onChange={handlePromptUpload}
+                  id="prompt-upload"
+                  style={{ display: "none" }}
+                />
+                <label htmlFor="prompt-upload" style={{ cursor: "pointer", background: darkMode ? "#444" : "#eee", color: darkMode ? "#fff" : "#000", padding: "8px 12px", borderRadius: "5px", fontSize: "0.9em" }}>
+                  Upload Prompt (.txt/pdf)
+                </label>
+
+                {fileName && <span style={{ fontSize: "0.8em" }}>Doc: {fileName}</span>}
+                {filePrompt && <span style={{ fontSize: "0.8em", color: "green" }}>✓ Extracted</span>}
+              </div>
+            )}
+
+            <div className="input-area" style={{ padding: 0 }}>
+              <input
+                placeholder="Type your message..."
+                value={message}
+                onChange={(e) => setMessage(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && sendMessage()}
+              />
+              <button onClick={sendMessage}>Send</button>
             </div>
           </div>
-        ))}
-      </div>
+        )}
+
+       
+        <div className="chat-box">
+          {chat.map((c, i) => (
+            <div key={i}>
+              <div className="user-msg">{c.user}</div>
+              <div className="bot-msg">
+                <pre>{c.bot.replace(/[*#]/g, '')}</pre>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );

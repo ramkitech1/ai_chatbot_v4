@@ -239,7 +239,7 @@ button:hover {
   transition: 0.2s;
 }
 
-
+/* FITNESS PANEL */
 .fitness-panel {
   display: flex;
   flex-direction: column;
@@ -285,7 +285,7 @@ button:hover {
   color: #eee;
 }
 
-
+/* INPUT ROW */
 .fitness-inputs {
   display: flex;
   flex-direction: column;
@@ -361,7 +361,7 @@ button:hover {
   color: #ef9a9a;
 }
 
-
+/* CALORIE TRACKER */
 .calorie-inputs {
   display: flex;
   gap: 10px;
